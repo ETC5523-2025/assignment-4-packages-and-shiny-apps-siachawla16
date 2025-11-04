@@ -4,8 +4,6 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-
-
 # Load packaged data
 data("yarra_wq", package = "waterquality")
 
@@ -18,56 +16,100 @@ date_max <- max(yarra_wq$date, na.rm = TRUE)
 gap_start <- as.Date("1995-01-01")
 gap_end   <- as.Date("2019-12-31")
 
-ui <- page_sidebar(
-  theme = bs_theme(bootswatch = "flatly"),
-  title = "Yarra River water quality: multi-parameter overlay",
-  sidebar = sidebar(
-    h4("Filters"),
-    checkboxGroupInput(
-      "params", "Parameters",
-      choices = param_choices,
-      selected = head(param_choices, 3)
-    ),
-    div(
-      style = "display:flex; gap:8px; margin-top:-8px; margin-bottom:6px;",
-      actionButton("select_all", "Select all"),
-      actionButton("clear_all", "Clear all")
-    ),
-    sliderInput(
-      "dates", "Date range",
-      min = date_min, max = date_max,
-      value = c(date_min, date_max),
-      timeFormat = "%Y-%m-%d", width = "100%"
-    ),
-    checkboxInput(
-      "normalize", "Standardize per parameter (z-score) to compare scales", value = FALSE
-    ),
-    helpText("Note: No WMIS records between ",
-             format(gap_start, "%Y"), " and ", format(gap_end, "%Y"),
-             ". If lines disappear there, it’s missing data, not zeros."),
-    hr(),
-    h4("How to interpret"),
-    helpText("• Overlay multiple parameters on one plot (colour = parameter).",
-             "• Leave standardization OFF to see raw magnitudes (units may differ).",
-             "• Turn standardization ON to compare patterns across different units/ranges.")
+theme_app <- bs_theme(bootswatch = "flatly")
+
+ui <- navbarPage(
+  title = "Yarra River water quality",
+  theme = theme_app,
+
+  ####### TAB 1: EXPLORE (unchanged overlay plot) #######
+  tabPanel(
+    "Explore",
+    sidebarLayout(
+      sidebarPanel(
+        h4("Filters"),
+        checkboxGroupInput(
+          "params", "Parameters",
+          choices = param_choices, selected = head(param_choices, 3)
+        ),
+        div(
+          style = "display:flex; gap:8px; margin-top:-8px; margin-bottom:6px;",
+          actionButton("select_all", "Select all"),
+          actionButton("clear_all", "Clear all")
+        ),
+        sliderInput(
+          "dates", "Date range",
+          min = date_min, max = date_max,
+          value = c(date_min, date_max),
+          timeFormat = "%Y-%m-%d", width = "100%"
+        ),
+        checkboxInput(
+          "normalize", "Standardize per parameter (z-score) to compare scales", value = TRUE
+        ),
+        helpText("Note: No WMIS records between ",
+                 format(gap_start, "%Y"), " and ", format(gap_end, "%Y"),
+                 ". If lines disappear there, it’s missing data, not zeros.")
+      ),
+      mainPanel(
+        div(class = "card",
+            div(class = "card-header", "Time series (overlayed)"),
+            plotOutput("ts_plot", height = 460),
+            uiOutput("gap_note")
+        ),
+        div(class = "card", style = "margin-top:12px;",
+            div(class = "card-header", "Summary"),
+            verbatimTextOutput("summary_txt")
+        )
+      )
+    )
   ),
-  layout_columns(
-    col_widths = c(7,5),
-    card(
-      card_header("Time series (overlayed)"),
-      plotOutput("ts_plot", height = 460),
-      uiOutput("gap_note")
-    ),
-    card(
-      card_header("Summary"),
-      verbatimTextOutput("summary_txt")
+
+  ####### TAB 2: SUMMARIES (single period: before OR after) #######
+  tabPanel(
+    "Summaries",
+    sidebarLayout(
+      sidebarPanel(
+        h4("Parameters"),
+        checkboxGroupInput(
+          "params_sum", "Choose parameters",
+          choices = param_choices, selected = head(param_choices, 3)
+        ),
+        div(
+          style = "display:flex; gap:8px; margin-top:-8px; margin-bottom:6px;",
+          actionButton("sum_select_all", "Select all"),
+          actionButton("sum_clear_all", "Clear all"),
+          actionButton("sum_copy_from_explore", "Copy from Explore")
+        ),
+        hr(),
+        h4("Choose period type"),
+        radioButtons(
+          "period_type", NULL,
+          choices = c("Before date", "After date"),
+          selected = "Before date", inline = TRUE
+        ),
+        dateInput("before_date", "Before date (≤ this date)", value = as.Date("1994-12-31")),
+        dateInput("after_date",  "After date (≥ this date)",  value = as.Date("2020-01-01")),
+        helpText("There are no WMIS records between ",
+                 format(gap_start, "%Y"), " and ", format(gap_end, "%Y"),
+                 ". Choose a period before or after this gap to summarise.")
+      ),
+      mainPanel(
+        div(class = "card",
+            div(class = "card-header", "Per-parameter summaries"),
+            tableOutput("summary_table")
+        ),
+        div(class = "card", style = "margin-top:12px;",
+            div(class = "card-header", "Notes"),
+            htmlOutput("summary_note")
+        )
+      )
     )
   )
 )
 
 server <- function(input, output, session) {
 
-  # Quick select/clear helpers
+  ## ----- Explore tab -----
   observeEvent(input$select_all, {
     updateCheckboxGroupInput(session, "params", selected = param_choices)
   })
@@ -75,7 +117,6 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(session, "params", selected = character(0))
   })
 
-  # Filtered data
   filtered <- reactive({
     req(length(input$params) > 0)
     yarra_wq |>
@@ -89,7 +130,6 @@ server <- function(input, output, session) {
   output$ts_plot <- renderPlot({
     df <- filtered(); req(nrow(df) > 0)
 
-    # Standardize per parameter if requested
     if (isTRUE(input$normalize)) {
       df <- df |>
         group_by(parameter) |>
@@ -108,7 +148,6 @@ server <- function(input, output, session) {
       labs(x = NULL, y = ylab, colour = "Parameter") +
       theme(legend.position = "top")
 
-    # Shade the known data gap if the selected window overlaps it
     if (input$dates[1] <= gap_end && input$dates[2] >= gap_start) {
       xmin <- max(input$dates[1], gap_start)
       xmax <- min(input$dates[2], gap_end)
@@ -141,9 +180,75 @@ server <- function(input, output, session) {
       " … ", format(input$dates[2], "%Y-%m-%d")
     )
   })
+
+  ## ----- Summaries tab -----
+  observeEvent(input$sum_select_all, {
+    updateCheckboxGroupInput(session, "params_sum", selected = param_choices)
+  })
+  observeEvent(input$sum_clear_all, {
+    updateCheckboxGroupInput(session, "params_sum", selected = character(0))
+  })
+  observeEvent(input$sum_copy_from_explore, {
+    updateCheckboxGroupInput(session, "params_sum", selected = input$params)
+  })
+
+  # Selected period filter (single period: BEFORE or AFTER)
+  period_filtered <- reactive({
+    req(length(input$params_sum) > 0)
+    if (input$period_type == "Before date") {
+      yarra_wq |>
+        filter(parameter %in% input$params_sum,
+               date <= input$before_date)
+    } else {
+      yarra_wq |>
+        filter(parameter %in% input$params_sum,
+               date >= input$after_date)
+    }
+  })
+
+  # Summaries: n, mean, median, sd, min, max
+  summaries_tbl <- reactive({
+    df <- period_filtered()
+    df |>
+      group_by(parameter) |>
+      summarise(
+        n      = n(),
+        mean   = mean(value, na.rm = TRUE),
+        median = median(value, na.rm = TRUE),
+        sd     = sd(value, na.rm = TRUE),
+        min    = min(value, na.rm = TRUE),
+        max    = max(value, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      arrange(parameter)
+  })
+
+  output$summary_table <- renderTable({
+    tbl <- summaries_tbl()
+    validate(need(nrow(tbl) > 0, "No data in the chosen period for the selected parameters."))
+    num_cols <- setdiff(names(tbl), "parameter")
+    tbl[num_cols] <- lapply(tbl[num_cols], function(x) if (is.numeric(x)) round(x, 3) else x)
+    tbl
+  }, striped = TRUE, bordered = TRUE, hover = TRUE, spacing = "s", width = "100%")
+
+  output$summary_note <- renderUI({
+    HTML(paste0(
+      "<p><strong>Period type:</strong> ", input$period_type, "</p>",
+      if (input$period_type == "Before date")
+        paste0("<p>Summaries include observations up to and including <em>",
+               format(input$before_date, "%Y-%m-%d"), "</em>.</p>")
+      else
+        paste0("<p>Summaries include observations on/after <em>",
+               format(input$after_date, "%Y-%m-%d"), "</em>.</p>"),
+      "<p><em>Important:</em> WMIS has <strong>no records between ",
+      format(gap_start, "%Y"), " and ", format(gap_end, "%Y"),
+      "</strong>. If your chosen cutoff lands in or near this gap, missing data explains any apparent ‘flat’ sections or empty results.</p>"
+    ))
+  })
 }
 
 shinyApp(ui, server)
+
 
 
 

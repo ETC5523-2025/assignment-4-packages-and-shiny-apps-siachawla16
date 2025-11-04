@@ -4,9 +4,9 @@
 \name{waterquality-package}
 \alias{waterquality}
 \alias{waterquality-package}
-\title{waterquality: What the Package Does (One Line, Title Case)}
+\title{waterquality: Interactive Yarra River Water Quality Explorer}
 \description{
-What the package does (one paragraph).
+R package containing a cleaned Yarra River water-quality dataset and a Shiny app to explore parameters over time (single-plot multi-parameter overlay), with summaries and documentation. Includes a known 1995–2019 data gap note and shading.
 }
 \author{
 \strong{Maintainer}: Sia Chawla \email{scha0351@student.monash.edu}

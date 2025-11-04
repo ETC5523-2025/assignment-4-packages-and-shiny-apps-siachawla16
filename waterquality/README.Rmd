@@ -15,41 +15,49 @@ knitr::opts_chunk$set(
 
 # waterquality
 
-<!-- badges: start -->
-<!-- badges: end -->
+This R package contains a cleaned Yarra River water-quality dataset and a Shiny app to explore the data interactively.
 
-The goal of waterquality is to ...
+## Install
 
-## Installation
-
-You can install the development version of waterquality from [GitHub](https://github.com/) with:
-
-``` r
-# install.packages("pak")
-pak::pak("ETC5523-2025/assignment-4-packages-and-shiny-apps-siachawla16")
+```{r, eval = FALSE}
+# install.packages("remotes")
+remotes::install_github(
+  "ETC5523-2025/assignment-4-packages-and-shiny-apps-siachawla16",
+  subdir = "waterquality"
+)
 ```
 
-## Example
+## Launch the app 
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
+```{r, eval=FALSE}
 library(waterquality)
-## basic example code
+run_app()
+
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
 
-```{r cars}
-summary(cars)
-```
+## What the app shows
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+- overlay multiple water-quality parameters on one time-series plot
 
-You can also embed plots, for example:
+- choose which parameters to include
 
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
+- date slider to change the time window
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+- option to standardise values (z score) to compare different units
+
+- summaries tab: mean, median, sd, min, max for BEFORE or AFTER a chosen cutoff date
+
+- clear note and shaded band indicating the WMIS data gap between 1995–2019
+
+
+## Data source
+
+Victoria Government: Department of Energy, Environment and Climate Action (2024)
+WMIS – Water Measurement Information System
+https://data.water.vic.gov.au/WMIS/
+
+## pkgdown site
+
+Visit: <WILL ADD URL HERE>
+

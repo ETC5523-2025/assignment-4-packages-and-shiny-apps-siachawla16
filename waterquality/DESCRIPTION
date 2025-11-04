@@ -1,9 +1,11 @@
 Package: waterquality
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Interactive Yarra River Water Quality Explorer
+Version: 0.0.1
 Authors@R: 
     person("Sia", "Chawla", , "scha0351@student.monash.edu", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: R package containing a cleaned Yarra River water-quality dataset and a Shiny app
+    to explore parameters over time (single-plot multi-parameter overlay), with summaries
+    and documentation. Includes a known 1995–2019 data gap note and shading.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
