@@ -1,0 +1,53 @@
+---
+title: "getting-started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{getting-started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(waterquality)
+library(dplyr)
+```
+
+## Load the packaged dataset
+
+```{r}
+data("yarra_wq", package = "waterquality")
+dplyr::glimpse(yarra_wq)
+
+```
+
+
+## A quick look at one parameter over time
+
+
+```{r}
+target <- unique(yarra_wq$parameter)[1]
+yr_mean <- yarra_wq |>
+dplyr::filter(parameter == target) |>
+dplyr::group_by(year) |>
+dplyr::summarise(mean_value = mean(value, na.rm = TRUE), .groups = "drop")
+plot(mean_value ~ year, data = yr_mean, type = "b",
+xlab = "Year", ylab = "Mean value")
+
+```
+
+
+
+## Launch the Shiny app
+
+```{r, eval=FALSE}
+waterquality::run_app()
+
+```
+

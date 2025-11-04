@@ -20,3 +20,7 @@ Imports:
     lubridate,
     shiny,
     tidyr
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
