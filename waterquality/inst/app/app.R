@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-# Load packaged data
+
 data("yarra_wq", package = "waterquality")
 
 # Parameter choices & date limits
@@ -22,12 +22,15 @@ ui <- navbarPage(
   title = "Yarra River water quality",
   theme = theme_app,
 
-  ####### TAB 1: EXPLORE (unchanged overlay plot) #######
+
   tabPanel(
     "Explore",
     sidebarLayout(
       sidebarPanel(
         h4("Filters"),
+        helpText("Each 'parameter' is a water-quality variable measured at the Yarra River site (e.g. pH, conductivity)."),
+        helpText("Note: there is a major data gap from ~1995–2019, so blank areas of the plot indicate no available WMIS measurements, not zero values."),
+        helpText("Interpretation: if the lines move together, parameters co-vary. If they diverge, they respond differently to conditions."),
         checkboxGroupInput(
           "params", "Parameters",
           choices = param_choices, selected = head(param_choices, 3)
@@ -64,7 +67,7 @@ ui <- navbarPage(
     )
   ),
 
-  ####### TAB 2: SUMMARIES (single period: before OR after) #######
+
   tabPanel(
     "Summaries",
     sidebarLayout(
@@ -109,7 +112,7 @@ ui <- navbarPage(
 
 server <- function(input, output, session) {
 
-  ## ----- Explore tab -----
+
   observeEvent(input$select_all, {
     updateCheckboxGroupInput(session, "params", selected = param_choices)
   })
@@ -181,7 +184,7 @@ server <- function(input, output, session) {
     )
   })
 
-  ## ----- Summaries tab -----
+
   observeEvent(input$sum_select_all, {
     updateCheckboxGroupInput(session, "params_sum", selected = param_choices)
   })
@@ -192,7 +195,7 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(session, "params_sum", selected = input$params)
   })
 
-  # Selected period filter (single period: BEFORE or AFTER)
+
   period_filtered <- reactive({
     req(length(input$params_sum) > 0)
     if (input$period_type == "Before date") {
@@ -206,7 +209,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # Summaries: n, mean, median, sd, min, max
+
   summaries_tbl <- reactive({
     df <- period_filtered()
     df |>
